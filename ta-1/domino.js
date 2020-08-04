@@ -70,13 +70,15 @@ function addingTile(validTile, board) {
 }
 // the process when each user playing their turn
 function userSession(userArray, board, tiles) {
-  let validTile = userArray.tiles[findValidTile(userArray.tiles, board)];
+  let index = findValidTile(userArray.tiles, board);
+  let validTile = userArray.tiles[index];
   while (validTile === undefined) {
     if (tiles.length > 0) {
       let chosenTile = tiles.splice(getRandomIndex(tiles), 1);
       userArray.tiles.push(chosenTile[0]);
       toDisplayTile(chosenTile, `${userArray.name} can't play, drawing tile`);
-      validTile = userArray.tiles[findValidTile(userArray.tiles, board)];
+      index = findValidTile(userArray.tiles, board);
+      validTile = userArray.tiles[index];
     } else {
       console.log(
         `${userArray.name} can't play and draw a tile, there is no tile in stock`
@@ -90,7 +92,7 @@ function userSession(userArray, board, tiles) {
       `${userArray.name} plays <${validTile[0]}:${validTile[1]}> to connect to tile <${connectingTile[0]}:${connectingTile[1]}> on the board`
     );
   }
-  userArray.tiles.splice(findValidTile(userArray.tiles, board), 1);
+  userArray.tiles.splice(index, 1);
   toDisplayTile(board, "Board is now:");
   return validTile;
 }
@@ -110,14 +112,24 @@ function determineWinner(arrayOne, arrayTwo) {
 }
 //play game by comparing users tiles
 function playGame(firstUser, secondUser, board, tiles) {
+  let validTileOne;
+  let validTileTwo;
   while (firstUser.tiles.length !== 0 && secondUser.tiles.length !== 0) {
-    let validTileOne = userSession(firstUser, board, tiles);
+    validTileOne = userSession(firstUser, board, tiles);
     if (firstUser.tiles.length === 0) {
       break;
     }
-    let validTileTwo = userSession(secondUser, board, tiles);
+    if (
+      validTileOne === undefined &&
+      validTileTwo === undefined &&
+      tiles.length === 0
+    ) {
+      console.log("No one can play anymore");
+      break;
+    }
+    validTileTwo = userSession(secondUser, board, tiles);
     if (validTileOne === undefined && validTileTwo === undefined) {
-      console.log("No one can play anymore:");
+      console.log("No one can play anymore");
       break;
     }
     console.log("*******next round**********");
