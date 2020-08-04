@@ -1,131 +1,130 @@
 "use strict";
 const chalk = require("chalk");
-//defining global variables
-const tiles = [];
-let firstUserTiles = [];
-let secondUserTiles = [];
-let i;
-//first chosen tile to start game, this array is also our gameTile.
-let randomTileToStart;
 //creating tiles(28 tile)
 function tilesGenerator() {
+  const tiles = [];
   for (let i = 0; i <= 6; i++) {
-    const tile = [];
-    tile.push(i, i);
+    const tile = [i, i];
     tiles.push(tile);
     for (let a = i + 1; a <= 6; a++) {
-      const tile = [];
-      tile.push(i, a);
+      const tile = [i, a];
       tiles.push(tile);
     }
   }
-  console.log("tiles", tiles);
-  console.log(tiles.length);
+  return tiles;
 }
 // getting random tile to shuffle it each player
 function getRandomIndex(items) {
   return Math.floor(Math.random() * items.length);
 }
+//to show the tile as it is shown in the ta.
+function toDisplayTile(arr, text) {
+  const newarr = arr.map((el) => {
+    return `<${el[0]}:${el[1]}> `;
+  });
+  console.log(`${text} ${newarr.join("")}`);
+}
 //shuffle tile randomly to each player
-function shuffleTiles() {
+function shuffleTiles(tiles) {
+  let firstUser = { tiles: [], name: "Klaus" };
+  let secondUser = { tiles: [], name: "Marcel" };
   for (let i = 0; i < 7; i++) {
     let chosenTileForUserOne = tiles.splice(getRandomIndex(tiles), 1);
-    firstUserTiles.push(chosenTileForUserOne[0]);
+    firstUser.tiles.push(chosenTileForUserOne[0]);
     let chosenTileForUserTwo = tiles.splice(getRandomIndex(tiles), 1);
-    secondUserTiles.push(chosenTileForUserTwo[0]);
+    secondUser.tiles.push(chosenTileForUserTwo[0]);
   }
-  console.log("firstuser", firstUserTiles);
-  console.log("seconduser", secondUserTiles);
-  console.log("tileslength", tiles.length);
-  randomTileToStart = tiles.splice(getRandomIndex(tiles), 1);
-  console.log("gameTile", randomTileToStart);
+  const board = tiles.splice(getRandomIndex(tiles), 1);
+  toDisplayTile(board, "Game starting with first tyle:");
+  return [firstUser, secondUser, board];
 }
 // to find whether we have proper tile to add gametile or not
-function findValidTile(userArray) {
-  let validTile = userArray.find((userTile, index) => {
-    if (
-      userTile.includes(randomTileToStart[0][0]) ||
-      userTile.includes(randomTileToStart[randomTileToStart.length - 1][1])
-    ) {
-      // defining 'i' variale to be able to remove tile from usertiles(userarray)
-      i = index;
-      return userTile;
-    }
+function findValidTile(userArray, board) {
+  let index = userArray.findIndex((userTile) => {
+    return (
+      userTile.includes(board[0][0]) ||
+      userTile.includes(board[board.length - 1][1])
+    );
   });
-  console.log(chalk.greenBright("validTile"), validTile);
-  return validTile;
+  return index;
 }
 // adding user's tile to the gametile
-function addingTile(validTile) {
-  if (validTile[0] === randomTileToStart[0][0]) {
-    randomTileToStart.unshift(validTile.reverse());
-  } else if (validTile[1] === randomTileToStart[0][0]) {
-    randomTileToStart.unshift(validTile);
-  } else if (
-    validTile[0] === randomTileToStart[randomTileToStart.length - 1][1]
-  ) {
-    randomTileToStart.push(validTile);
-  } else if (
-    validTile[1] === randomTileToStart[randomTileToStart.length - 1][1]
-  ) {
-    randomTileToStart.push(validTile.reverse());
+function addingTile(validTile, board) {
+  let connectingTile;
+  if (validTile[0] === board[0][0]) {
+    connectingTile = board[0];
+    let newValidTile = [...validTile];
+    board.unshift(newValidTile.reverse());
+  } else if (validTile[1] === board[0][0]) {
+    connectingTile = board[0];
+    board.unshift(validTile);
+  } else if (validTile[0] === board[board.length - 1][1]) {
+    connectingTile = board[board.length - 1];
+    board.push(validTile);
+  } else if (validTile[1] === board[board.length - 1][1]) {
+    connectingTile = board[board.length - 1];
+    let newValidTile = [...validTile];
+    board.push(newValidTile.reverse());
   }
+  return connectingTile;
 }
 // the process when each user playing their turn
-function userSession(userArray) {
-  let validTile = findValidTile(userArray);
+function userSession(userArray, board, tiles) {
+  let validTile = userArray.tiles[findValidTile(userArray.tiles, board)];
   while (validTile === undefined) {
     if (tiles.length > 0) {
       let chosenTile = tiles.splice(getRandomIndex(tiles), 1);
-      userArray.push(chosenTile[0]);
-      validTile = findValidTile(userArray);
+      userArray.tiles.push(chosenTile[0]);
+      toDisplayTile(chosenTile, `${userArray.name} can't play, drawing tile`);
+      validTile = userArray.tiles[findValidTile(userArray.tiles, board)];
     } else {
-      console.log("there is no tile in stock");
-      return validTile;
+      console.log(
+        `${userArray.name} can't play and draw a tile, there is no tile in stock`
+      );
+      return;
     }
   }
-  addingTile(validTile);
-  userArray.splice(i, 1);
-  console.log(chalk.red("last phase userArray"), userArray);
-  console.log(chalk.cyan("gameTile"), randomTileToStart);
-  console.log("tileslength", tiles.length);
-  console.log("*****************");
+  let connectingTile = addingTile(validTile, board);
+  if (connectingTile) {
+    console.log(
+      `${userArray.name} plays <${validTile[0]}:${validTile[1]}> to connect to tile <${connectingTile[0]}:${connectingTile[1]}> on the board`
+    );
+  }
+  userArray.tiles.splice(findValidTile(userArray.tiles, board), 1);
+  toDisplayTile(board, "Board is now:");
   return validTile;
 }
 // after finishing game write winner to console
 function determineWinner(arrayOne, arrayTwo) {
   if (arrayOne.length === 0) {
-    console.log("playerone wins");
+    console.log("Player One wins");
   } else if (arrayTwo.length === 0) {
-    console.log("playertwo wins");
+    console.log("Player Two wins");
   } else if (arrayOne.length < arrayTwo.length) {
-    console.log("playerone wins");
+    console.log("Player One wins");
   } else if (arrayOne.length > arrayTwo.length) {
-    console.log("playertwo wins");
+    console.log("Player Two wins");
   } else {
-    console.log("officially draw");
+    console.log("Officially Draw");
   }
 }
-//comparing userssession
-function compareArrays(arrayOne, arrayTwo) {
-  while (arrayOne.length !== 0 && arrayTwo.length !== 0) {
-    console.log("arrayOne", arrayOne.length);
-    console.log("arrayTwo", arrayTwo.length);
-    let validTileOne = userSession(arrayOne);
-    if (arrayOne.length === 0) {
-      determineWinner(arrayOne, arrayTwo);
-      return;
+//play game by comparing users tiles
+function playGame(firstUser, secondUser, board, tiles) {
+  while (firstUser.tiles.length !== 0 && secondUser.tiles.length !== 0) {
+    let validTileOne = userSession(firstUser, board, tiles);
+    if (firstUser.tiles.length === 0) {
+      break;
     }
-    let validTileTwo = userSession(arrayTwo);
+    let validTileTwo = userSession(secondUser, board, tiles);
     if (validTileOne === undefined && validTileTwo === undefined) {
-      console.log("No one can play anymore");
-      determineWinner(arrayOne, arrayTwo);
-      return;
+      console.log("No one can play anymore:");
+      break;
     }
+    console.log("*******next round**********");
   }
-  determineWinner(arrayOne, arrayTwo);
+  determineWinner(firstUser.tiles, secondUser.tiles);
 }
 
-tilesGenerator();
-shuffleTiles();
-compareArrays(firstUserTiles, secondUserTiles, tiles);
+const allTiles = tilesGenerator();
+const [firstUser, secondUser, board] = shuffleTiles(allTiles);
+playGame(firstUser, secondUser, board, allTiles);
